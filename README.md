@@ -7,7 +7,7 @@ Pick a mode, guess an anime, and use the clue cards to narrow it down within 10 
 
 - **Regular:** the answer is from MAL's top 500 most popular anime
 - **Easy:** the answer is from the top 300
-- You can guess any of the 500 in either mode
+- You can guess any of the top 1000 in either mode
 - Hints unlock at guess 5 and guess 9 (premise, blurred poster, or genres). Each costs a guess
 - Stats and streaks are saved per mode in your browser
 
@@ -28,11 +28,11 @@ Keyboard: type to search, `↑`/`↓` to move, `Enter` to guess, `Enter` again a
 `data/anime.js` is generated from MyAnimeList (popularity rank, score, studios, source, genres, streaming, etc.):
 
 ```bash
-python scripts/scrape.py --count 500
+python scripts/scrape.py --count 1000
 ```
 
 Pages are cached in `scripts/.cache/`, so re-runs are fast. Delete that folder to pull fresh numbers.
-The scraper waits ~1.2s between requests to be polite to MAL; a full run takes 15–20 minutes.
+The scraper waits ~1.2s between requests to be polite to MAL; a full run takes about an hour (pages are cached, so re-runs are quick).
 
 ## Clues
 
@@ -46,6 +46,6 @@ The scraper waits ~1.2s between requests to be polite to MAL; a full run takes 1
 | MAL score | within 0.3 |
 | Popularity | within 25 places or 10% (↑ = answer is more popular) |
 | Age rating | one step away (G → PG → PG-13 → R → R+) |
-| TV seasons | within 1 (TV entries in the sequel/prequel chain) |
+| TV seasons | within 1 (TV entries in the full sequel/prequel chain, followed past the top 1000) |
 | Similarity | genres/themes/demographic overlap, Cold → Scorching |
 | Streams on | shared services light up |

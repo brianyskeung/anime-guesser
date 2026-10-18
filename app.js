@@ -420,7 +420,7 @@
     active = 0;
     box.innerHTML = "";
     if (!suggestions.length) {
-      box.append(el("li", "sugg-empty", "No match in the top 500. Try another name."));
+      box.append(el("li", "sugg-empty", `No match in the top ${DATA.length}. Try another name.`));
     }
     suggestions.forEach((s, i) => {
       const a = s.a;
@@ -430,7 +430,7 @@
       li.setAttribute("role", "option");
       li.innerHTML = `<img src="${esc(a.img)}" alt="" loading="lazy" referrerpolicy="no-referrer">
         <div><div class="sugg-title">${highlight(main, q)}</div>${alt ? `<div class="sugg-alt">${highlight(alt, q)}</div>` : ""}</div>
-        <div class="sugg-meta">${esc(a.type)} · ${a.year ?? "?"}</div>`;
+        <div class="sugg-meta">${esc(a.type)}</div>`;
       li.addEventListener("mousedown", (e) => { e.preventDefault(); choose(i); });
       li.addEventListener("mousemove", () => setActive(i));
       box.append(li);

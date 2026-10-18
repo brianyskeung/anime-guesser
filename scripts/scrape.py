@@ -1,6 +1,6 @@
 """Scrape the top N most popular anime from MyAnimeList into data/anime.js.
 
-Usage:  python scripts/scrape.py [--count 500] [--delay 1.2]
+Usage:  python scripts/scrape.py [--count 1000] [--delay 1.2]
 
 Pages are cached in scripts/.cache so re-runs only fetch what's missing.
 Delete the cache folder to force a full refresh.
@@ -171,8 +171,9 @@ def count_seasons(entries):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--count", type=int, default=500)
+    ap.add_argument("--count", type=int, default=1000)
     ap.add_argument("--delay", type=float, default=1.2)
+    ap.add_argument("--max-chain", type=int, default=800, help="cap on extra sequel/prequel pages to fetch")
     args = ap.parse_args()
     CACHE.mkdir(exist_ok=True)
     OUT.parent.mkdir(exist_ok=True)
@@ -201,7 +202,28 @@ def main():
         if i % 25 == 0 or i == len(ids):
             print(f"[{i}/{len(ids)}] {e['title']}", flush=True)
 
-    count_seasons(entries)
+    # Follow sequel/prequel links past the top list so long franchises get full season counts.
+    known = {e["id"] for e in entries}
+    queue = [rid for e in entries for kind, rid, _ in e["_rel"] if kind in SEASON_LINKS and rid not in known]
+    extras = []
+    while queue and len(extras) < args.max_chain:
+        rid = queue.pop()
+        if rid in known:
+            continue
+        known.add(rid)
+        page = fetch(f"https://myanimelist.net/anime/{rid}", f"anime_{rid}.html", args.delay)
+        try:
+            x = parse_anime(rid, page)
+        except Exception as ex:
+            print(f"  failed to parse chain entry {rid}: {ex!r}", file=sys.stderr)
+            continue
+        extras.append(x)
+        queue += [r for kind, r, _ in x["_rel"] if kind in SEASON_LINKS and r not in known]
+        if len(extras) % 25 == 0:
+            print(f"  followed {len(extras)} sequel/prequel entries outside the list", flush=True)
+    print(f"followed {len(extras)} sequel/prequel entries outside the list", flush=True)
+
+    count_seasons(entries + extras)
     entries.sort(key=lambda e: e["pop"] or 99999)
     for e in entries:
         del e["_rel"]
