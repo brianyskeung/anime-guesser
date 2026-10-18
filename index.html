@@ -23,11 +23,14 @@
     </a>
     <div class="top-right">
       <div class="mode-toggle" role="radiogroup" aria-label="Difficulty">
+        <button class="mode" role="radio" data-mode="easy" aria-checked="false">
+          <span class="mode-name">Easy</span><span class="mode-sub">Top 300</span>
+        </button>
         <button class="mode" role="radio" data-mode="regular" aria-checked="true">
           <span class="mode-name">Regular</span><span class="mode-sub">Top 500</span>
         </button>
-        <button class="mode" role="radio" data-mode="easy" aria-checked="false">
-          <span class="mode-name">Easy</span><span class="mode-sub">Top 300</span>
+        <button class="mode" role="radio" data-mode="hard" aria-checked="false">
+          <span class="mode-name">Hard</span><span class="mode-sub">Top 1000</span>
         </button>
       </div>
       <nav class="nav">
@@ -131,7 +134,7 @@
         <tr><th>Age rating</th><td>MAL age rating. Yellow if one step away.</td></tr>
         <tr><th>Streams on</th><td>Shared streaming services light up green.</td></tr>
       </table>
-      <p>Stuck? From guess 5 and guess 9 you can pick a hint: tags, what fans also liked, a line of synopsis, a blurred poster, or the first letter. Each hint uses one guess. When a round ends, hit <kbd>Enter</kbd> or <b>Next anime</b> to keep playing.</p>
+      <p>Stuck? From guess 5 and guess 9 you can pick a hint: tags, what fans also liked, a line of synopsis, a blurred poster, or the first letter. Each hint uses one guess. When a round ends, click <b>Next anime</b> to keep playing.</p>
       <button class="cta" value="close">Got it</button>
     </form>
   </dialog>
@@ -157,8 +160,9 @@
       <h2 class="modal-title">History</h2>
       <div class="hist-tabs">
         <button type="button" class="hist-tab on" data-filter="all">All</button>
-        <button type="button" class="hist-tab" data-filter="regular">Regular</button>
         <button type="button" class="hist-tab" data-filter="easy">Easy</button>
+        <button type="button" class="hist-tab" data-filter="regular">Regular</button>
+        <button type="button" class="hist-tab" data-filter="hard">Hard</button>
       </div>
       <p class="hist-summary" id="histSummary"></p>
       <ul class="hist-list" id="histList"></ul>

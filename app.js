@@ -7,6 +7,7 @@
   const MODES = {
     regular: { label: "Regular · Top 500", size: 500 },
     easy: { label: "Easy · Top 300", size: 300 },
+    hard: { label: "Hard · Top 1000", size: 1000 },
   };
   const RATING_ORDER = ["G", "PG", "PG-13", "R", "R+", "Rx"];
   const STOP = new Set("the and for with from that this season part movie film final first second third no wa ga wo ni to de of a an in on".split(" "));
@@ -425,7 +426,7 @@
     $("#giveUpBtn").disabled = game.over;
     const input = $("#searchInput");
     input.disabled = game.over;
-    input.placeholder = game.over ? "Round over — press Enter for the next anime" : "Search for an anime...";
+    input.placeholder = game.over ? "Round over — click Next anime to keep playing" : "Search for an anime...";
     if (game.over) { input.value = ""; closeSuggestions(); }
 
     // guesses (newest first)
@@ -443,20 +444,23 @@
     const res = $("#result");
     if (game.over) {
       res.hidden = false;
-      res.className = "result" + (game.won ? "" : " lost");
+      res.className = "card result" + (game.won ? " correct" : " lost");
+      const tags = [...(a.genres || []), ...(a.themes || [])].map((t) => `<span class="tag">${esc(t)}</span>`).join("");
       res.innerHTML = `
-        <button type="button" class="poster-link" data-zoom="${a.id}" aria-label="Zoom poster"><img src="${esc(a.img)}" alt="" referrerpolicy="no-referrer"></button>
-        <div>
-          <div class="result-eyebrow">${game.won ? `Solved in ${n} ${n === 1 ? "guess" : "guesses"}` : "The anime was"}</div>
-          <div class="result-title">${esc(a.en || a.title)}</div>
-          <div class="result-sub">${esc(a.title !== (a.en || a.title) ? a.title + " · " : "")}${esc(a.type)} · ${a.year ?? "?"} · ${esc(a.studios.join(", "))} · ★ ${a.score ?? "N/A"} · #${a.pop} popular</div>
+        <div class="card-top">
+          <button type="button" class="poster-link" data-zoom="${a.id}" aria-label="Zoom poster"><img class="poster" src="${esc(a.img)}" alt="" referrerpolicy="no-referrer"></button>
+          <div class="card-head">
+            <div class="result-eyebrow">${game.won ? `Solved in ${n} ${n === 1 ? "guess" : "guesses"}` : "The anime was"}</div>
+            <h3 class="card-title" title="${esc(a.title)}">${esc(a.en || a.title)}</h3>
+            <div class="card-sub">${esc(a.title !== (a.en || a.title) ? a.title + " · " : "")}${esc(a.type)} · ${a.year ?? "?"} · ${esc(a.studios.join(", "))} · ★ ${a.score ?? "N/A"} · #${a.pop} popular</div>
+            ${tags ? `<div class="tags">${tags}</div>` : ""}
+          </div>
           <div class="result-actions">
             <button class="cta primary" id="nextBtn">Next anime →</button>
-            <a href="${malUrl(a)}" target="_blank" rel="noopener" style="align-self:center">View on MAL ↗</a>
+            <a href="${malUrl(a)}" target="_blank" rel="noopener">View on MAL ↗</a>
           </div>
         </div>`;
       $("#nextBtn").onclick = newGame;
-      if (!fresh) setTimeout(() => $("#nextBtn")?.focus(), 50);
     } else {
       res.hidden = true;
     }
@@ -588,7 +592,7 @@
             <img src="${esc(a.img)}" alt="" loading="lazy" referrerpolicy="no-referrer">
             <div class="hist-main">
               <div class="hist-title">${esc(a.en || a.title)}</div>
-              <div class="hist-meta">${h.mode === "easy" ? "Easy" : "Regular"} · ${when.toLocaleDateString()} ${when.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</div>
+              <div class="hist-meta">${MODES[h.mode]?.label.split(" · ")[0] || "Regular"} · ${when.toLocaleDateString()} ${when.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</div>
               <div class="hist-pips">${pips}</div>
             </div>
             <span class="hist-result ${h.won ? "won" : "lost"}">${h.won ? `${n}/${MAX_GUESSES}` : "X"}</span>
@@ -694,10 +698,7 @@
 
     document.addEventListener("keydown", (e) => {
       if (document.querySelector("dialog[open]")) return;
-      if (game.over && (e.key === "Enter" || e.key.toLowerCase() === "n") && e.target.tagName !== "BUTTON") {
-        e.preventDefault();
-        newGame();
-      } else if (e.key === "/" && document.activeElement !== input && !game.over) {
+      if (e.key === "/" && document.activeElement !== input && !game.over) {
         e.preventDefault();
         input.focus();
       }
