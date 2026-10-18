@@ -8,7 +8,8 @@ Pick a mode, guess an anime, and use the clue cards to narrow it down within 10 
 - **Regular:** the answer is from MAL's top 500 most popular anime
 - **Easy:** the answer is from the top 300
 - You can guess any of the top 1000 in either mode
-- Hints unlock at guess 5 and guess 9 (premise, blurred poster, or genres). Each costs a guess
+- Hints unlock at guess 5 and guess 9: Tags (top AniList tags), Fans also liked, one line of Synopsis (names blacked out), Blurred poster, or First letter. Each costs a guess
+- Click any poster to zoom in
 - Stats and streaks are saved per mode in your browser
 
 ## Play
@@ -25,7 +26,7 @@ Keyboard: type to search, `↑`/`↓` to move, `Enter` to guess, `Enter` again a
 
 ## Refresh the data
 
-`data/anime.js` is generated from MyAnimeList (popularity rank, score, studios, source, genres, streaming, etc.):
+`data/anime.js` is generated from MyAnimeList (popularity rank, score, studios, source, genres, streaming, etc.), then AniList adds tags and recommendations for the hints:
 
 ```bash
 python scripts/scrape.py --count 1000

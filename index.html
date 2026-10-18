@@ -59,15 +59,6 @@
         <ul class="suggestions" id="suggestions" role="listbox" hidden></ul>
       </div>
 
-      <div class="hint-picker" id="hintPicker" hidden>
-        <div class="hint-picker-head">Pick a hint <span>· uses one guess</span></div>
-        <div class="hint-options">
-          <button class="hint-opt" data-hint="premise"><b>Premise</b><span>A line from the synopsis</span></button>
-          <button class="hint-opt" data-hint="poster"><b>Poster</b><span>A blurry look at the art</span></button>
-          <button class="hint-opt" data-hint="genres"><b>Genres</b><span>Every genre and theme</span></button>
-        </div>
-      </div>
-
       <div class="result" id="result" hidden></div>
 
       <ol class="guesses" id="guesses"></ol>
@@ -79,6 +70,43 @@
     </section>
     <p class="credit">Data from MyAnimeList · <span id="dataDate"></span></p>
   </main>
+
+  <dialog class="zoom-modal" id="zoomModal" aria-label="Poster">
+    <form method="dialog" class="zoom-inner">
+      <button class="modal-x zoom-x" aria-label="Close">×</button>
+      <img id="zoomImg" alt="" referrerpolicy="no-referrer">
+      <div class="zoom-caption"><span id="zoomTitle"></span><a id="zoomLink" target="_blank" rel="noopener">View on MAL ↗</a></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal hint-modal" id="hintPicker">
+    <form method="dialog" class="modal-inner">
+      <button class="modal-x" aria-label="Close">×</button>
+      <div class="eyebrow hint-eyebrow-top">Stuck?</div>
+      <h2 class="modal-title">Pick a hint</h2>
+      <p class="hint-cost">Each hint uses one guess. You can't pick the same kind twice.</p>
+      <div class="hint-options">
+        <button type="button" class="hint-opt" data-hint="tags">
+          <span class="hint-ico">#</span><b>Tags</b><span>The top 8 AniList tags that describe the anime.</span>
+        </button>
+        <button type="button" class="hint-opt" data-hint="recs">
+          <span class="hint-ico">♥</span><b>Fans also liked</b><span>Other anime that fans of this one also enjoy.</span>
+        </button>
+        <button type="button" class="hint-opt" data-hint="synopsis">
+          <span class="hint-ico">❝</span><b>Synopsis</b><span>One line from the official synopsis, names blacked out.</span>
+        </button>
+        <button type="button" class="hint-opt" data-hint="poster">
+          <span class="hint-ico">▣</span><b>Blurred poster</b><span>A very blurry look at the key art.</span>
+        </button>
+        <button type="button" class="hint-opt" data-hint="letter">
+          <span class="hint-ico">A</span><b>First letter</b><span>The letter the title starts with.</span>
+        </button>
+      </div>
+      <div class="modal-actions hint-actions">
+        <button class="ghost" value="close">Not yet</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog class="modal" id="helpModal">
     <form method="dialog" class="modal-inner">
@@ -103,7 +131,7 @@
         <tr><th>Age rating</th><td>MAL age rating. Yellow if one step away.</td></tr>
         <tr><th>Streams on</th><td>Shared streaming services light up green.</td></tr>
       </table>
-      <p>Stuck? From guess 5 and guess 9 you can pick a hint. Each hint uses one guess. When a round ends, hit <kbd>Enter</kbd> or <b>Next anime</b> to keep playing.</p>
+      <p>Stuck? From guess 5 and guess 9 you can pick a hint: tags, what fans also liked, a line of synopsis, a blurred poster, or the first letter. Each hint uses one guess. When a round ends, hit <kbd>Enter</kbd> or <b>Next anime</b> to keep playing.</p>
       <button class="cta" value="close">Got it</button>
     </form>
   </dialog>

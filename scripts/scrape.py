@@ -233,6 +233,9 @@ def main():
     OUT.write_text(js, encoding="utf-8")
     print(f"wrote {len(entries)} anime to {OUT}")
 
+    import enrich_anilist  # same folder; adds tags + "fans also liked" for the hints
+    enrich_anilist.main()
+
 
 if __name__ == "__main__":
     main()

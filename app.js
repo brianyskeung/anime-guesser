@@ -273,7 +273,7 @@
     li.innerHTML = `
       <div class="card-num">${n}</div>
       <div class="card-top">
-        <a class="poster-link" href="${malUrl(g)}" target="_blank" rel="noopener"><img class="poster" src="${esc(g.img)}" alt="" loading="lazy" referrerpolicy="no-referrer"></a>
+        <button type="button" class="poster-link" data-zoom="${g.id}" aria-label="Zoom poster"><img class="poster" src="${esc(g.img)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>
         <div class="card-head">
           <h3 class="card-title" title="${esc(g.title)}">${esc(g.en || g.title)}</h3>
           <div class="card-sub">${esc(g.type)} · ${g.year ?? "?"}</div>
@@ -301,27 +301,98 @@
     return li;
   }
 
-  function premise(a) {
-    const words = new Set();
+  // Words that are capitalized but aren't names worth hiding.
+  const NOT_NAMES = new Set("I A An The But And Or When While After Before As At In On Of For With Without From To Into However Meanwhile Now Yet So If Though Although Despite During Since Until Once Upon His Her Their Its Our My Your He She They It We You This That These Those There Here One Two Three Four Five Six Seven Eight Nine Ten Many Some Every Each Mr Mrs Ms Dr Japanese English".split(" "));
+
+  // One sentence from the synopsis, with the title and every name blacked out.
+  function synopsisLine(a) {
+    const titleWords = new Set();
     [a.title, a.en, ...(a.alt || [])].filter(Boolean).forEach((t) =>
-      norm(t).split(" ").forEach((w) => { if (w.length >= 3 && !STOP.has(w) && !/^\d+$/.test(w)) words.add(w); })
+      norm(t).split(" ").forEach((w) => { if (w.length >= 3 && !STOP.has(w) && !/^\d+$/.test(w)) titleWords.add(w); })
     );
-    const sentences = (a.synopsis || "").match(/[^.!?]+[.!?]+["')\]]*/g) || [a.synopsis || "No synopsis available."];
-    let text = "";
-    for (const s of sentences) { if ((text + s).length > 320 && text) break; text += s; }
-    return esc(text.trim()).replace(/[\p{L}\p{N}']+/gu, (w) =>
-      words.has(norm(w)) ? `<span class="redact">${"█".repeat(w.length)}</span>` : w
-    );
+    // Protect initials and titles like "Monkey D. Luffy" / "Mr. Smith" from being read as sentence ends.
+    const text = (a.synopsis || "No synopsis available.").replace(/(?<![\p{L}])(\p{Lu}|Mr|Mrs|Ms|Dr|St|Jr|vs)\.(?=\s)/gu, "$1․");
+    const sentences = (text.match(/[^.!?]+[.!?]+["')\]]*/g) || [text]).map((x) => x.trim().replace(/․/g, "."));
+    const line = sentences.find((x) => x.split(/\s+/).length >= 8) || sentences[0] || "";
+    // Capitalized words seen mid-sentence anywhere in the synopsis are names, even when one starts our line.
+    const midCaps = new Set();
+    for (const sen of sentences) sen.split(/\s+/).slice(1).forEach((w) => {
+      const core = w.replace(/^[^\p{L}]+|(?:['’]s)?[^\p{L}]*$/gu, "");
+      if (/^\p{Lu}/u.test(core)) midCaps.add(core);
+    });
+    const tokens = line.split(/(\s+|[—–\/]|\.{3}|…)/);
+    let first = true;
+    return tokens.map((tok, i) => {
+      if (!tok || /^(\s+|[—–\/]|\.{3}|…)$/.test(tok)) return esc(tok);
+      const m = tok.match(/^([^\p{L}\p{N}]*)([\p{L}\p{N}][\p{L}\p{N}'’.-]*?)((?:['’]s)?[^\p{L}\p{N}]*)$/u);
+      const isFirst = first;
+      first = false;
+      if (!m) return esc(tok);
+      const [, pre, word, post] = m;
+      const capital = /^\p{Lu}/u.test(word);
+      const nextCapital = /^[^\p{L}]*\p{Lu}/u.test(tokens[i + 2] || "");
+      const isName = capital && !NOT_NAMES.has(word) && (!isFirst || nextCapital || midCaps.has(word));
+      const hide = isName || titleWords.has(norm(word));
+      return esc(pre) + (hide ? `<span class="redact">${"█".repeat(Math.min(word.length, 10))}</span>` : esc(word)) + esc(post);
+    }).join("");
   }
 
+  const HINTS = {
+    tags: "Tags",
+    recs: "Fans also liked",
+    synopsis: "Synopsis",
+    letter: "First letter",
+    poster: "Blurred poster",
+  };
+  // Hints from older saves
+  const LEGACY_HINT = { premise: "synopsis", genres: "tags" };
+  const hintName = (kind) => HINTS[LEGACY_HINT[kind] || kind] || kind;
+
   function hintCard(kind, a, n) {
+    kind = LEGACY_HINT[kind] || kind;
     const li = el("li", "card hintcard");
     let body = "";
-    if (kind === "premise") body = `<div class="hint-body">${premise(a)}</div>`;
-    else if (kind === "poster") body = `<div class="hint-poster-wrap"><img class="hint-poster" src="${esc(a.img)}" alt="Blurred poster" referrerpolicy="no-referrer"></div>`;
-    else body = `<div class="tags">${[...(a.genres || []), ...(a.themes || []), a.demo].filter(Boolean).map((t) => `<span class="tag on">${esc(t)}</span>`).join("") || '<span class="tag">None listed</span>'}</div>`;
-    li.innerHTML = `<div class="card-num">${n}</div><div class="hint-eyebrow">Hint · ${kind}</div>${body}`;
+    if (kind === "synopsis") {
+      body = `<div class="hint-body">${synopsisLine(a)}</div>`;
+    } else if (kind === "poster") {
+      body = `<div class="hint-poster-wrap"></div>`;
+    } else if (kind === "letter") {
+      const name = (a.en || a.title).trim();
+      body = `<div class="hint-body">The title starts with <span class="hint-letter">${esc(name[0].toUpperCase())}</span></div>`;
+    } else if (kind === "recs") {
+      const recs = (a.recs || []).filter((r) => {
+        const other = byId.get(r.id);
+        return r.id !== a.id && !(other && other.franchise === a.franchise);
+      }).slice(0, 3);
+      body = recs.length
+        ? `<div class="tags">${recs.map((r) => `<span class="tag rec">${esc(r.name)}</span>`).join("")}</div>`
+        : '<div class="hint-body">No recommendations listed for this one.</div>';
+    } else {
+      const tags = (a.tags && a.tags.length ? a.tags : [...(a.genres || []), ...(a.themes || [])]).slice(0, 8);
+      body = `<div class="tags">${tags.map((t) => `<span class="tag on">${esc(t)}</span>`).join("")}</div>`;
+    }
+    li.innerHTML = `<div class="card-num">${n}</div><div class="hint-eyebrow">Hint · ${esc(HINTS[kind] || kind)}</div>${body}`;
+    if (kind === "poster") li.querySelector(".hint-poster-wrap").append(blurredPoster(a.img));
     return li;
+  }
+
+  // Draw the poster into a tiny canvas so the sharp image never ends up in the page
+  // (an <img> can be dragged or opened to see it unblurred).
+  const posterCache = new Map();
+  function blurredPoster(src) {
+    const c = document.createElement("canvas");
+    c.className = "hint-poster";
+    c.width = 14;
+    c.height = 20;
+    const paint = (img) => c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    if (posterCache.has(src)) paint(posterCache.get(src));
+    else {
+      const img = new Image();
+      img.referrerPolicy = "no-referrer";
+      img.onload = () => { posterCache.set(src, img); paint(img); };
+      img.src = src;
+    }
+    return c;
   }
 
   function render(fresh = false) {
@@ -347,8 +418,8 @@
     hb.classList.toggle("ready", avail);
     const nextLock = HINT_AT.find((x) => x > n + 1);
     $("#hintLabel").textContent = avail ? "Pick a hint" : game.over ? "Hints" : nextLock && hintsUsed() < HINT_AT.length ? `Hint at guess ${nextLock}` : "No hints left";
-    if (!avail) $("#hintPicker").hidden = true;
-    const usedKinds = new Set(game.turns.filter((t) => t.hint).map((t) => t.hint));
+    if (!avail && $("#hintPicker").open) $("#hintPicker").close();
+    const usedKinds = new Set(game.turns.filter((t) => t.hint).map((t) => LEGACY_HINT[t.hint] || t.hint));
     document.querySelectorAll(".hint-opt").forEach((b) => (b.disabled = usedKinds.has(b.dataset.hint)));
 
     $("#giveUpBtn").disabled = game.over;
@@ -374,7 +445,7 @@
       res.hidden = false;
       res.className = "result" + (game.won ? "" : " lost");
       res.innerHTML = `
-        <img src="${esc(a.img)}" alt="" referrerpolicy="no-referrer">
+        <button type="button" class="poster-link" data-zoom="${a.id}" aria-label="Zoom poster"><img src="${esc(a.img)}" alt="" referrerpolicy="no-referrer"></button>
         <div>
           <div class="result-eyebrow">${game.won ? `Solved in ${n} ${n === 1 ? "guess" : "guesses"}` : "The anime was"}</div>
           <div class="result-title">${esc(a.en || a.title)}</div>
@@ -471,6 +542,20 @@
     $("#statsModal").showModal();
   }
 
+  // ---------- poster zoom ----------
+  function openZoom(id) {
+    const a = byId.get(id);
+    if (!a) return;
+    // MAL serves a bigger version of the same poster with an "l" suffix
+    const big = a.img.replace(/(\.\w+)$/, "l$1");
+    const img = $("#zoomImg");
+    img.onerror = () => { img.onerror = null; img.src = a.img; };
+    img.src = big;
+    $("#zoomTitle").textContent = a.en || a.title;
+    $("#zoomLink").href = malUrl(a);
+    $("#zoomModal").showModal();
+  }
+
   // ---------- history modal ----------
   let historyFilter = "all";
 
@@ -491,10 +576,10 @@
       const when = new Date(h.at);
       const name = (id) => { const g = byId.get(id); return g ? g.en || g.title : "Unknown"; };
       const pips = h.turns.map((t) =>
-        t.hint ? `<i class="hp hint" title="Hint: ${esc(t.hint)}"></i>` : `<i class="hp ${t.id === h.answer ? "win" : ""}" title="${esc(name(t.id))}"></i>`
+        t.hint ? `<i class="hp hint" title="Hint: ${esc(hintName(t.hint))}"></i>` : `<i class="hp ${t.id === h.answer ? "win" : ""}" title="${esc(name(t.id))}"></i>`
       ).join("");
       const guesses = h.turns.map((t, i) =>
-        t.hint ? `<li class="hint">${i + 1}. Hint · ${esc(t.hint)}</li>` : `<li class="${t.id === h.answer ? "win" : ""}">${i + 1}. ${esc(name(t.id))}</li>`
+        t.hint ? `<li class="hint">${i + 1}. Hint · ${esc(hintName(t.hint))}</li>` : `<li class="${t.id === h.answer ? "win" : ""}">${i + 1}. ${esc(name(t.id))}</li>`
       ).join("") || "<li>No guesses (gave up right away)</li>";
       const li = el("li", "hist-row");
       li.innerHTML = `
@@ -533,7 +618,7 @@
     mode = m;
     store.set("mode", m);
     document.querySelectorAll(".mode").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.mode === m)));
-    $("#hintPicker").hidden = true;
+    if ($("#hintPicker").open) $("#hintPicker").close();
     loadOrNew();
   }
 
@@ -579,13 +664,18 @@
       save();
       render();
     });
-    $("#hintBtn").addEventListener("click", () => { const p = $("#hintPicker"); p.hidden = !p.hidden; });
+    $("#hintBtn").addEventListener("click", () => $("#hintPicker").showModal());
     document.querySelectorAll(".hint-opt").forEach((b) =>
-      b.addEventListener("click", () => { $("#hintPicker").hidden = true; useHint(b.dataset.hint); })
+      b.addEventListener("click", () => { $("#hintPicker").close(); useHint(b.dataset.hint); })
     );
     $("#helpBtn").addEventListener("click", () => $("#helpModal").showModal());
     $("#statsBtn").addEventListener("click", openStats);
     $("#historyBtn").addEventListener("click", openHistory);
+    document.addEventListener("click", (e) => {
+      const z = e.target.closest("[data-zoom]");
+      if (z) openZoom(Number(z.dataset.zoom));
+    });
+    $("#zoomModal").addEventListener("click", (e) => { if (e.target === $("#zoomModal")) $("#zoomModal").close(); });
     document.querySelectorAll(".hist-tab").forEach((b) =>
       b.addEventListener("click", () => { historyFilter = b.dataset.filter; openHistory(); })
     );
