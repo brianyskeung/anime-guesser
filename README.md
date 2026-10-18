@@ -1,4 +1,6 @@
-# Anime Guesser (unlimited)
+# Unlimited Anime Guesser
+
+Saw an anime guessing game that didn't have unlimited mode so made one myself. 
 
 A Spotle-style anime guessing game you can play as many times as you want.
 Pick a mode, guess an anime, and use the clue cards to narrow it down within 10 guesses.
